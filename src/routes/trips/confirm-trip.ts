@@ -5,6 +5,8 @@ import { z } from "zod";
 import { prisma } from "../../lib/prisma";
 import { dayjs } from "../../lib/dayjs";
 import { getMailClient } from "../../lib/mail";
+import { ClientError } from "../../errors/client-error";
+import { env } from "../../env";
 
 export async function confirmTrip(app: FastifyInstance) {
   app.withTypeProvider<ZodTypeProvider>().get(
@@ -33,11 +35,11 @@ export async function confirmTrip(app: FastifyInstance) {
       });
 
       if (!trip) {
-        throw new Error("Trip not found.");
+        throw new ClientError("Trip not found.");
       }
 
       if (trip.is_confirmed) {
-        return response.redirect(`http://localhost:3000/trips/${tripId}`);
+        return response.redirect(`${env.WEB_BASE_URL}/trips/${tripId}`);
       }
 
       await prisma.trip.update({
@@ -56,7 +58,7 @@ export async function confirmTrip(app: FastifyInstance) {
 
       await Promise.all([
         trip.participants.map(async (participant) => {
-          const confirmationLink = `http://localhost:3333/participants/${participant.id}/confirm`;
+          const confirmationLink = `${env.API_BASE_URL}/participants/${participant.id}/confirm`;
 
           const message = await mail.sendMail({
             from: {
@@ -91,7 +93,7 @@ export async function confirmTrip(app: FastifyInstance) {
         }),
       ]);
 
-      return response.redirect(`http://localhost:3000/trips/${tripId}`);
+      return response.redirect(`${env.WEB_BASE_URL}/trips/${tripId}`);
     },
   );
 }
